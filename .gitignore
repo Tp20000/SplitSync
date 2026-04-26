@@ -1,0 +1,15 @@
+node_modules
+.env
+dist
+.next
+coverage
+postgres_data
+
+# Environment files
+apps/server/.env
+apps/web/.env.local
+.env
+
+# Logs
+apps/server/logs/
+*.log
