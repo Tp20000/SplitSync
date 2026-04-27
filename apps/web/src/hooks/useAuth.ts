@@ -41,7 +41,6 @@ interface AuthApiResponse {
 
 export function useLogin() {
   const { setUser } = useAuthStore();
-  const router = useRouter();
 
   return useMutation({
     mutationFn: async (payload: LoginPayload) => {
@@ -50,9 +49,10 @@ export function useLogin() {
       return response.data.data;
     },
     onSuccess: (data) => {
-  setUser(data.user, data.accessToken);
-  router.push("/dashboard");   // ← was /dashboard, now correct
-},
+      setUser(data.user, data.accessToken);
+      // Use hard navigation to ensure full reload + auth init
+      window.location.href = "/dashboard";
+    },
   });
 }
 
@@ -62,7 +62,6 @@ export function useLogin() {
 
 export function useRegister() {
   const { setUser } = useAuthStore();
-  const router = useRouter();
 
   return useMutation({
     mutationFn: async (payload: RegisterPayload) => {
@@ -71,9 +70,10 @@ export function useRegister() {
       return response.data.data;
     },
     onSuccess: (data) => {
-  setUser(data.user, data.accessToken);
-  router.push("/dashboard");   // ← correct
-},
+      setUser(data.user, data.accessToken);
+      // Use hard navigation to ensure full reload + auth init
+      window.location.href = "/dashboard";
+    },
   });
 }
 

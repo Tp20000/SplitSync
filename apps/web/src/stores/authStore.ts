@@ -5,9 +5,9 @@
 
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
-import { apiClient, setAccessToken } from "@/lib/axios";
 import type { AuthUser } from "@/types/auth";
 import { updateSocketAuth } from "@/lib/socket";
+import { apiClient, setAccessToken, getAccessToken } from "@/lib/axios";
 
 interface AuthState {
   user: AuthUser | null;
@@ -32,7 +32,13 @@ export const useAuthStore = create<AuthState>()(
 
       setUser: (user: AuthUser, token: string) => {
         setAccessToken(token);
-        updateSocketAuth(token);
+
+        // Persist user data for page reloads (sessionStorage — cleared on tab close)
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("splitsync_user", JSON.stringify(user));
+          sessionStorage.setItem("splitsync_token", token);
+        }
+
         set(
           {
             user,
@@ -47,6 +53,13 @@ export const useAuthStore = create<AuthState>()(
 
       clearAuth: () => {
         setAccessToken(null);
+
+        // Clear sessionStorage
+        if (typeof window !== "undefined") {
+          sessionStorage.removeItem("splitsync_user");
+          sessionStorage.removeItem("splitsync_token");
+        }
+
         set(
           {
             user: null,
@@ -83,11 +96,61 @@ export const useAuthStore = create<AuthState>()(
       },
 
       // ── Initialize: try to restore session from refresh token ──
-      initializeAuth: async () => {
+              initializeAuth: async () => {
         if (get().isInitialized) return;
 
         set({ isLoading: true }, false, "auth/initStart");
 
+        // 1. Check sessionStorage first (survives page reload within same tab)
+        if (typeof window !== "undefined") {
+          const storedUser = sessionStorage.getItem("splitsync_user");
+          const storedToken = sessionStorage.getItem("splitsync_token");
+
+          if (storedUser && storedToken) {
+            try {
+              const user = JSON.parse(storedUser) as AuthUser;
+              setAccessToken(storedToken);
+
+              set(
+                {
+                  user,
+                  isAuthenticated: true,
+                  isLoading: false,
+                  isInitialized: true,
+                },
+                false,
+                "auth/initFromSession"
+              );
+
+              // Try to refresh in background (non-blocking)
+              void fetch(
+                `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api/v1"}/auth/refresh`,
+                { method: "POST", credentials: "include" }
+              )
+                .then((r) => r.json())
+                .then((data: { success: boolean; data?: { accessToken: string; user: AuthUser } }) => {
+                  if (data.success && data.data) {
+                    setAccessToken(data.data.accessToken);
+                    sessionStorage.setItem(
+                      "splitsync_token",
+                      data.data.accessToken
+                    );
+                  }
+                })
+                .catch(() => {
+                  // Silent fail — user stays logged in from sessionStorage
+                });
+
+              return;
+            } catch {
+              // Invalid sessionStorage data — clear it
+              sessionStorage.removeItem("splitsync_user");
+              sessionStorage.removeItem("splitsync_token");
+            }
+          }
+        }
+
+        // 2. Try refresh token (works when same domain or cookies set)
         try {
           const apiUrl =
             process.env.NEXT_PUBLIC_API_URL ??
@@ -96,25 +159,23 @@ export const useAuthStore = create<AuthState>()(
           const response = await fetch(`${apiUrl}/auth/refresh`, {
             method: "POST",
             credentials: "include",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
           });
 
-          if (!response.ok) {
-            throw new Error(`Refresh failed: ${response.status}`);
-          }
+          if (!response.ok) throw new Error("Refresh failed");
 
           const data = (await response.json()) as {
             success: true;
-            data: {
-              user: AuthUser;
-              accessToken: string;
-            };
+            data: { user: AuthUser; accessToken: string };
           };
 
           const { user, accessToken } = data.data;
           setAccessToken(accessToken);
+
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem("splitsync_user", JSON.stringify(user));
+            sessionStorage.setItem("splitsync_token", accessToken);
+          }
 
           set(
             {

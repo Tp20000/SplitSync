@@ -1,6 +1,6 @@
 // FILE: apps/web/src/app/(dashboard)/layout.tsx
-// PURPOSE: Dashboard layout with auth guard + navbar
-// LAST UPDATED: F47 Fix
+// PURPOSE: Dashboard layout with client-side auth guard
+// LAST UPDATED: F47 Fix - Cross-domain cookie auth
 
 "use client";
 
@@ -20,15 +20,24 @@ export default function DashboardLayout({
   const router = useRouter();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const isInitialized = useAuthStore((s) => s.isInitialized);
+  const isLoading = useAuthStore((s) => s.isLoading);
 
   useEffect(() => {
-    if (isInitialized && !isAuthenticated) {
+    // Only redirect if fully initialized AND not authenticated
+    if (isInitialized && !isAuthenticated && !isLoading) {
       router.replace("/login");
     }
-  }, [isInitialized, isAuthenticated, router]);
+  }, [isInitialized, isAuthenticated, isLoading, router]);
 
-  if (!isInitialized) return <LoadingScreen />;
-  if (!isAuthenticated) return <LoadingScreen />;
+  // Show loading while auth is being determined
+  if (!isInitialized || isLoading) {
+    return <LoadingScreen />;
+  }
+
+  // Redirect handled by useEffect above
+  if (!isAuthenticated) {
+    return <LoadingScreen />;
+  }
 
   return (
     <div className="min-h-screen bg-background">
