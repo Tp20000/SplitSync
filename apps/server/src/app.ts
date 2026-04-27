@@ -50,6 +50,8 @@ const app: Application = express();
 const httpServer = http.createServer(app);
 let io: SocketIOServer;
 
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
+
 // ─────────────────────────────────────────────
 // Security Middleware
 // ─────────────────────────────────────────────
@@ -226,9 +228,21 @@ async function bootstrap(): Promise<void> {
     await prisma.$connect();
     logger.info("[Database] Connected to PostgreSQL");
 
-    // 2. Verify Redis connection
-    await redisClient.ping();
-    logger.info("[Redis] Connected to Redis");
+    // 2. Verify Redis connection (non-fatal in production)
+    try {
+      await redisClient.ping();
+      logger.info("[Redis] Connected to Redis");
+    } catch (redisErr) {
+      const error = redisErr as Error;
+      if (IS_PRODUCTION) {
+        logger.warn(
+          "[Redis] Could not connect to Redis — continuing without cache:",
+          { message: error.message }
+        );
+      } else {
+        throw redisErr; // Fatal in development
+      }
+    }
 
     // 3. Start BullMQ workers
     startAllWorkers();
@@ -242,16 +256,20 @@ async function bootstrap(): Promise<void> {
     startCronJobs();
     logger.info("[CRON] Scheduled jobs started");
 
-    // 5. Start HTTP server
+    // 6. Start HTTP server
     httpServer.listen(env.PORT, () => {
       logger.info(
         `[Server] SplitSync API running on port ${env.PORT} (${env.NODE_ENV})`
       );
-      logger.info(`[Server] Health: http://localhost:${env.PORT}/health`);
+      logger.info(
+        `[Server] Health: http://localhost:${env.PORT}/health`
+      );
     });
   } catch (err) {
     const error = err as Error;
-    logger.error("[Server] Bootstrap failed:", { message: error.message });
+    logger.error("[Server] Bootstrap failed:", {
+      message: error.message,
+    });
     process.exit(1);
   }
 }

@@ -1,38 +1,57 @@
 // FILE: apps/server/src/config/redis.ts
-// PURPOSE: Redis client singleton with retry logic and pub/sub support
-// DEPENDS ON: ioredis, .env (REDIS_HOST, REDIS_PORT)
-// LAST UPDATED: F03 - Redis + BullMQ Setup
+// PURPOSE: Redis client singleton with TLS support for Upstash
+// DEPENDS ON: ioredis, .env
+// LAST UPDATED: F47 Fix - Upstash TLS support
 
 import Redis from "ioredis";
 
 // ─────────────────────────────────────────────
-// Redis connection options
+// Connection config
 // ─────────────────────────────────────────────
 
 const REDIS_HOST = process.env.REDIS_HOST ?? "localhost";
 const REDIS_PORT = parseInt(process.env.REDIS_PORT ?? "6379", 10);
 const REDIS_PASSWORD = process.env.REDIS_PASSWORD ?? undefined;
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
 
-const redisConnectionOptions = {
+// ─────────────────────────────────────────────
+// Build connection options
+// Upstash requires TLS in production
+// ─────────────────────────────────────────────
+
+const redisConnectionOptions: Redis.RedisOptions = {
   host: REDIS_HOST,
   port: REDIS_PORT,
   password: REDIS_PASSWORD,
-  maxRetriesPerRequest: null, // Required by BullMQ
-  enableReadyCheck: false,    // Required by BullMQ
+  maxRetriesPerRequest: null,
+  enableReadyCheck: false,
+
+  // Enable TLS for Upstash (production) or any non-local Redis
+  ...(IS_PRODUCTION && REDIS_HOST !== "localhost"
+    ? {
+        tls: {
+          rejectUnauthorized: false,
+        },
+      }
+    : {}),
+
   retryStrategy(times: number): number | null {
-    // Retry with exponential backoff up to 30 seconds
     if (times > 10) {
-      console.error("[Redis] Max retry attempts reached. Giving up.");
+      console.error(
+        "[Redis] Max retry attempts reached. Giving up."
+      );
       return null;
     }
-    const delay = Math.min(times * 500, 30000);
-    console.warn(`[Redis] Retrying connection in ${delay}ms... (attempt ${times})`);
+    const delay = Math.min(times * 500, 10000);
+    console.warn(
+      `[Redis] Retrying in ${delay}ms... (attempt ${times})`
+    );
     return delay;
   },
 };
 
 // ─────────────────────────────────────────────
-// Main Redis client (for caching + general use)
+// Main Redis client
 // ─────────────────────────────────────────────
 
 declare global {
@@ -60,8 +79,7 @@ redisClient.on("close", () => {
 });
 
 // ─────────────────────────────────────────────
-// Subscriber Redis client (for pub/sub)
-// A separate connection is required for subscriptions
+// Subscriber client
 // ─────────────────────────────────────────────
 
 declare global {
@@ -85,58 +103,70 @@ redisSubscriber.on("error", (err: Error) => {
 });
 
 // ─────────────────────────────────────────────
-// Cache helper utilities
+// Cache helpers
 // ─────────────────────────────────────────────
 
-/**
- * Set a cache value with optional TTL (seconds)
- */
 async function cacheSet(
   key: string,
   value: unknown,
   ttlSeconds?: number
 ): Promise<void> {
-  const serialized = JSON.stringify(value);
-  if (ttlSeconds) {
-    await redisClient.setex(key, ttlSeconds, serialized);
-  } else {
-    await redisClient.set(key, serialized);
+  try {
+    const serialized = JSON.stringify(value);
+    if (ttlSeconds) {
+      await redisClient.setex(key, ttlSeconds, serialized);
+    } else {
+      await redisClient.set(key, serialized);
+    }
+  } catch (err) {
+    console.error("[Redis] cacheSet error:", (err as Error).message);
   }
 }
 
-/**
- * Get a cache value and parse JSON
- */
 async function cacheGet<T>(key: string): Promise<T | null> {
-  const value = await redisClient.get(key);
-  if (!value) return null;
-  return JSON.parse(value) as T;
-}
-
-/**
- * Delete a cache key
- */
-async function cacheDel(key: string): Promise<void> {
-  await redisClient.del(key);
-}
-
-/**
- * Delete all keys matching a pattern
- */
-async function cacheDelPattern(pattern: string): Promise<void> {
-  const keys = await redisClient.keys(pattern);
-  if (keys.length > 0) {
-    await redisClient.del(...keys);
+  try {
+    const value = await redisClient.get(key);
+    if (!value) return null;
+    return JSON.parse(value) as T;
+  } catch (err) {
+    console.error("[Redis] cacheGet error:", (err as Error).message);
+    return null;
   }
 }
 
-/**
- * Gracefully disconnect both Redis clients
- */
+async function cacheDel(key: string): Promise<void> {
+  try {
+    await redisClient.del(key);
+  } catch (err) {
+    console.error("[Redis] cacheDel error:", (err as Error).message);
+  }
+}
+
+async function cacheDelPattern(pattern: string): Promise<void> {
+  try {
+    const keys = await redisClient.keys(pattern);
+    if (keys.length > 0) {
+      await redisClient.del(...keys);
+    }
+  } catch (err) {
+    console.error(
+      "[Redis] cacheDelPattern error:",
+      (err as Error).message
+    );
+  }
+}
+
 async function disconnectRedis(): Promise<void> {
-  await redisClient.quit();
-  await redisSubscriber.quit();
-  console.log("[Redis] All connections closed gracefully");
+  try {
+    await redisClient.quit();
+    await redisSubscriber.quit();
+    console.log("[Redis] All connections closed gracefully");
+  } catch (err) {
+    console.error(
+      "[Redis] Disconnect error:",
+      (err as Error).message
+    );
+  }
 }
 
 export {
