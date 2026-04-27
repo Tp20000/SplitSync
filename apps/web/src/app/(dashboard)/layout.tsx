@@ -1,7 +1,6 @@
 // FILE: apps/web/src/app/(dashboard)/layout.tsx
-// PURPOSE: Dashboard layout with navbar + mobile nav + auth guard
-// DEPENDS ON: authStore, Navbar, MobileNav, ErrorBoundary
-// LAST UPDATED: F42 - Mobile Responsive UI
+// PURPOSE: Dashboard layout with auth guard + navbar
+// LAST UPDATED: F47 Fix
 
 "use client";
 

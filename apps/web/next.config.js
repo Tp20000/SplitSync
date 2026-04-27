@@ -1,11 +1,10 @@
-// FILE: apps/web/next.config.js
-// PURPOSE: Next.js 14 config with proper API proxy
-// DEPENDS ON: next
-// LAST UPDATED: F31 Fix - Body passthrough
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  output: "standalone",
+
+  // Clean dist dir on each build
+  cleanDistDir: true,
 
   images: {
     remotePatterns: [
@@ -17,7 +16,9 @@ const nextConfig = {
 
   async rewrites() {
     const backendUrl =
-      process.env.BACKEND_URL ?? "http://localhost:5000";
+      process.env.BACKEND_URL ??
+      process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") ??
+      "http://localhost:5000";
 
     return {
       beforeFiles: [
@@ -27,13 +28,6 @@ const nextConfig = {
         },
       ],
     };
-  },
-
-  // Ensure body size limit is adequate
-  experimental: {
-    serverActions: {
-      bodySizeLimit: "10mb",
-    },
   },
 };
 

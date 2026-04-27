@@ -1,10 +1,18 @@
 // FILE: apps/web/src/app/(dashboard)/page.tsx
-// PURPOSE: Root of dashboard group — redirect to /dashboard
-// DEPENDS ON: next/navigation
-// LAST UPDATED: F09 Fix - Dashboard Route
+// PURPOSE: Root redirect to dashboard
+// LAST UPDATED: F47 Fix
 
-import { redirect } from "next/navigation";
+"use client";
 
-export default function DashboardIndexPage() {
-  redirect("/dashboard");
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+
+export default function DashboardRootPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace("/dashboard");
+  }, [router]);
+
+  return null;
 }
