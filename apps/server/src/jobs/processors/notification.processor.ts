@@ -1,9 +1,9 @@
 // FILE: apps/server/src/jobs/processors/notification.processor.ts
 // PURPOSE: Processes notification jobs — saves to DB + emits socket event
-// DEPENDS ON: bullmq, prisma, socket emitters
-// LAST UPDATED: F29 - Notification System
+// LAST UPDATED: F47 Fix - Prisma JSON type
 
 import { Job } from "bullmq";
+import { Prisma } from "@prisma/client";
 import {
   NotificationJobData,
   QUEUE_NAMES,
@@ -13,10 +13,6 @@ import { redisConnectionOptions } from "../../config/redis";
 import prisma from "../../config/database";
 import { emitNotification } from "../../socket/emitters";
 import { logger } from "../../shared/utils/logger";
-
-// ─────────────────────────────────────────────
-// Process notification job
-// ─────────────────────────────────────────────
 
 async function processNotificationJob(
   job: Job<NotificationJobData>
@@ -35,7 +31,7 @@ async function processNotificationJob(
         type,
         title,
         body,
-        metadata: metadata ?? {},
+        metadata: (metadata ?? {}) as Prisma.InputJsonValue,
         isRead: false,
       },
     });
@@ -44,7 +40,7 @@ async function processNotificationJob(
       `[NotificationProcessor] Saved notification ${notification.id}`
     );
 
-    // 2. Emit socket event to user's personal room
+    // 2. Emit socket event
     emitNotification(userId, {
       id: notification.id,
       type: notification.type,
@@ -68,10 +64,6 @@ async function processNotificationJob(
   }
 }
 
-// ─────────────────────────────────────────────
-// Create worker
-// ─────────────────────────────────────────────
-
 export function createNotificationWorker(): Worker<NotificationJobData> {
   const worker = new Worker<NotificationJobData>(
     QUEUE_NAMES.NOTIFICATION,
@@ -94,10 +86,7 @@ export function createNotificationWorker(): Worker<NotificationJobData> {
   });
 
   worker.on("error", (err) => {
-    logger.error(
-      "[NotificationWorker] Worker error:",
-      err.message
-    );
+    logger.error("[NotificationWorker] Worker error:", err.message);
   });
 
   return worker;
