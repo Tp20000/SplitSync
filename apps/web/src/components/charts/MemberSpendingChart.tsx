@@ -28,11 +28,13 @@ import { formatCurrency } from "@/lib/utils";
 interface MemberSpendingChartProps {
   groupId: string;
   currency?: string;
+  className?: string;
 }
 
 export function MemberSpendingChart({
   groupId,
   currency = "INR",
+  className,
 }: MemberSpendingChartProps) {
   const { data: members, isLoading } = useMemberSpending(groupId);
 
@@ -43,7 +45,7 @@ export function MemberSpendingChart({
   }));
 
   return (
-    <Card>
+   <Card className={className}>
       <CardHeader>
         <CardTitle className="text-base">
           Member Contributions

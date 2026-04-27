@@ -29,6 +29,7 @@ import { formatCurrency } from "@/lib/utils";
 interface SpendingTrendChartProps {
   groupId: string;
   currency?: string;
+  className?: string;
 }
 
 type Period = "daily" | "weekly" | "monthly";
@@ -42,6 +43,7 @@ const PERIOD_LABELS: Record<Period, string> = {
 export function SpendingTrendChart({
   groupId,
   currency = "INR",
+  className,
 }: SpendingTrendChartProps) {
   const [period, setPeriod] = useState<Period>("monthly");
   const { data, isLoading } = useSpendingTrends(groupId, period);
@@ -49,7 +51,7 @@ export function SpendingTrendChart({
   const trends = data?.trends ?? [];
 
   return (
-    <Card>
+     <Card className={className}>
       <CardHeader>
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>

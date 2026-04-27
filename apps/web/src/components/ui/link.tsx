@@ -1,16 +1,12 @@
 // FILE: apps/web/src/components/ui/link.tsx
 // PURPOSE: Next.js Link wrapper for shadcn compatibility
 // DEPENDS ON: next/link
-// LAST UPDATED: F08 - Login & Register Pages
+// LAST UPDATED: F47 Fix - href type compatibility
 
-import Link from "next/link";
-import { forwardRef } from "react";
+import NextLink from "next/link";
+import type { ComponentProps } from "react";
 
-const LinkComponent = forwardRef<
-  HTMLAnchorElement,
-  React.AnchorHTMLAttributes<HTMLAnchorElement>
->((props, ref) => <Link ref={ref} {...props} />);
+type LinkProps = ComponentProps<typeof NextLink>;
 
-LinkComponent.displayName = "Link";
-
-export { LinkComponent as Link };
+export const Link = NextLink;
+export type { LinkProps };

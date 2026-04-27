@@ -21,11 +21,13 @@ import type { Category } from "@/types/expense";
 interface SummaryStatsProps {
   groupId: string;
   currency?: string;
+  className?: string;
 }
 
 export function SummaryStats({
   groupId,
   currency = "INR",
+  className,
 }: SummaryStatsProps) {
   const { data: summary, isLoading } = useGroupSummary(groupId);
 
@@ -49,7 +51,7 @@ export function SummaryStats({
   const momZero = mom === 0;
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className={cn("grid gap-4 sm:grid-cols-2 lg:grid-cols-4", className)}>
       {/* Total Expenses */}
       <Card>
         <CardContent className="pt-5 pb-4">

@@ -189,12 +189,12 @@ function HistoryEntry({
         {entry.action === "created" && entry.newData && (
           <p className="mt-1 text-xs text-muted-foreground">
             Added &quot;{(entry.newData as Record<string, unknown>).title as string}&quot;
-            {(entry.newData as Record<string, unknown>).totalAmount && (
-              <> for {formatCurrency(
-                String((entry.newData as Record<string, unknown>).totalAmount),
-                currency
-              )}</>
-            )}
+         {Boolean((entry.newData as Record<string, unknown>).totalAmount) && (
+          <> for {formatCurrency(
+            String((entry.newData as Record<string, unknown>).totalAmount ?? "0"),
+            currency
+          )}</>
+        )}
           </p>
         )}
 

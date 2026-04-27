@@ -28,6 +28,7 @@ import type { Category } from "@/types/expense";
 interface CategoryBreakdownChartProps {
   groupId: string;
   currency?: string;
+  className?: string;
 }
 
 // Category colors
@@ -52,6 +53,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 export function CategoryBreakdownChart({
   groupId,
   currency = "INR",
+  className,
 }: CategoryBreakdownChartProps) {
   const { data, isLoading } = useCategoryBreakdown(groupId);
 
@@ -61,7 +63,7 @@ export function CategoryBreakdownChart({
   const topCategories = breakdown.slice(0, 8);
 
   return (
-    <Card>
+   <Card className={className}>
       <CardHeader>
         <CardTitle className="text-base">
           Spending by Category
