@@ -1,7 +1,4 @@
-// FILE: apps/web/src/app/(dashboard)/dashboard/page.tsx
-// PURPOSE: Dashboard home — summary + quick actions
-// DEPENDS ON: authStore, useGroups, shadcn/ui
-// LAST UPDATED: F11 - Groups Frontend
+
 
 "use client";
 

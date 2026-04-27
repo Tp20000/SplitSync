@@ -1,7 +1,4 @@
-// FILE: apps/web/src/app/(dashboard)/groups/[groupId]/analytics/page.tsx
-// PURPOSE: Analytics page for a specific group
-// DEPENDS ON: all chart components
-// LAST UPDATED: F35 - Analytics Dashboard
+
 
 "use client";
 

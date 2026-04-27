@@ -1,7 +1,4 @@
-// FILE: apps/web/src/app/(dashboard)/groups/[groupId]/page.tsx
-// PURPOSE: Full group detail page with tabs — members, expenses, balances
-// DEPENDS ON: useGroup, useGroupMembers, MemberList, InviteCodeCard, Tabs
-// LAST UPDATED: F12 - Group Members UI
+
 
 "use client";
 

@@ -1,6 +1,4 @@
-// FILE: apps/web/src/app/(dashboard)/balances/loading.tsx
-// PURPOSE: Loading state for balances page
-// LAST UPDATED: F41
+
 
 import { Skeleton } from "@/components/ui/skeleton";
 

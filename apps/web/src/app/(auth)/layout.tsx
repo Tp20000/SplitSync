@@ -1,7 +1,4 @@
-// FILE: apps/web/src/app/(auth)/layout.tsx
-// PURPOSE: Auth layout — centered card with responsive padding
-// DEPENDS ON: none
-// LAST UPDATED: F42 - Mobile Responsive UI
+
 
 import Link from "next/link";
 

@@ -1,7 +1,4 @@
-// FILE: apps/web/src/app/(dashboard)/analytics/page.tsx
-// PURPOSE: Global analytics — spending overview across all groups
-// DEPENDS ON: useGroups, chart components
-// LAST UPDATED: F35 - Analytics Dashboard
+
 
 "use client";
 

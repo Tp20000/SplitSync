@@ -1,6 +1,4 @@
-// FILE: apps/web/src/app/(dashboard)/activity/loading.tsx
-// PURPOSE: Loading state for activity page
-// LAST UPDATED: F41
+
 
 import { Skeleton } from "@/components/ui/skeleton";
 

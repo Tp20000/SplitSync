@@ -1,15 +1,17 @@
 // FILE: apps/web/src/components/groups/SettleSuggestions.tsx
-// PURPOSE: Visual display of simplified settlement suggestions with optimization stats
-// DEPENDS ON: shadcn/ui, balance types
-// LAST UPDATED: F17 - Debt Simplification Algorithm
+// PURPOSE: Visual display of simplified settlement suggestions with UPI payment
+// DEPENDS ON: shadcn/ui, balance types, UpiPaymentModal, SettleButton
+// LAST UPDATED: Payment Integration - UPI Deep Links
 
 "use client";
 
+import { useState } from "react";
 import {
   ArrowRight,
   CheckCircle2,
   Sparkles,
   TrendingDown,
+  Smartphone,
 } from "lucide-react";
 import {
   Card,
@@ -19,7 +21,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { SettleButton } from "./SettleButton";
+import { UpiPaymentModal } from "@/components/settlements/UpiPaymentModal";
 import { useUser } from "@/stores/authStore";
 import {
   formatCurrency,
@@ -28,7 +33,6 @@ import {
 } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import type { PairwiseDebt, SimplificationStats } from "@/types/balance";
-import { SettleButton } from "./SettleButton";
 
 interface SettleSuggestionsProps {
   debts: PairwiseDebt[];
@@ -44,6 +48,10 @@ export function SettleSuggestions({
   groupId,
 }: SettleSuggestionsProps) {
   const currentUser = useUser();
+  const [selectedDebt, setSelectedDebt] =
+    useState<PairwiseDebt | null>(null);
+  const [payModalOpen, setPayModalOpen] = useState(false);
+
   const allSettled = debts.length === 0;
 
   return (
@@ -54,7 +62,10 @@ export function SettleSuggestions({
             <CardTitle className="flex items-center gap-2 text-base">
               {allSettled ? (
                 <>
-                  <CheckCircle2 size={16} className="text-green-600" />
+                  <CheckCircle2
+                    size={16}
+                    className="text-green-600"
+                  />
                   All Settled Up! 🎉
                 </>
               ) : (
@@ -73,12 +84,10 @@ export function SettleSuggestions({
 
           {/* Optimization badge */}
           {!allSettled && stats.savings > 0 && (
-            <Badge
-              variant="success"
-              className="gap-1 shrink-0"
-            >
+            <Badge variant="success" className="gap-1 shrink-0">
               <TrendingDown size={12} />
-              {stats.savings} fewer transfer{stats.savings !== 1 ? "s" : ""}
+              {stats.savings} fewer transfer
+              {stats.savings !== 1 ? "s" : ""}
             </Badge>
           )}
         </div>
@@ -94,18 +103,23 @@ export function SettleSuggestions({
                   Without optimization
                 </p>
                 <p className="font-medium">
-                  {stats.naiveCount} payment{stats.naiveCount !== 1 ? "s" : ""}
+                  {stats.naiveCount} payment
+                  {stats.naiveCount !== 1 ? "s" : ""}
                 </p>
               </div>
 
-              <ArrowRight size={16} className="text-muted-foreground shrink-0" />
+              <ArrowRight
+                size={16}
+                className="text-muted-foreground shrink-0"
+              />
 
               <div className="flex-1">
                 <p className="text-xs text-muted-foreground mb-1">
                   With SplitSync
                 </p>
                 <p className="font-semibold text-green-600">
-                  {stats.simplifiedCount} payment{stats.simplifiedCount !== 1 ? "s" : ""}
+                  {stats.simplifiedCount} payment
+                  {stats.simplifiedCount !== 1 ? "s" : ""}
                 </p>
               </div>
 
@@ -212,13 +226,47 @@ export function SettleSuggestions({
                         {getInitials(debt.to.name)}
                       </div>
                     </div>
-                     <SettleButton
-                      debt={debt}
-                      groupId={groupId}
-                      currentUserId={currentUser?.id ?? ""}
-                      variant="outline"
-                      size="sm"
-                    />
+
+                    {/* Payment buttons — only for debts where current user pays */}
+                    {isCurrentUserFrom && (
+                      <div className="flex items-center gap-1 ml-1 shrink-0">
+                        {/* Pay via UPI */}
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="gap-1 bg-green-600 hover:bg-green-700 h-7 text-xs"
+                          onClick={() => {
+                            setSelectedDebt(debt);
+                            setPayModalOpen(true);
+                          }}
+                        >
+                          <Smartphone size={12} />
+                          Pay
+                        </Button>
+
+                        {/* Manual settle */}
+                        <SettleButton
+                          debt={debt}
+                          groupId={groupId}
+                          currentUserId={currentUser?.id ?? ""}
+                          variant="outline"
+                          size="sm"
+                        />
+                      </div>
+                    )}
+
+                    {/* Settle button for debts where current user receives */}
+                    {isCurrentUserTo && !isCurrentUserFrom && (
+                      <div className="ml-1 shrink-0">
+                        <SettleButton
+                          debt={debt}
+                          groupId={groupId}
+                          currentUserId={currentUser?.id ?? ""}
+                          variant="outline"
+                          size="sm"
+                        />
+                      </div>
+                    )}
                   </div>
                   {index < debts.length - 1 && (
                     <Separator className="my-1" />
@@ -238,6 +286,17 @@ export function SettleSuggestions({
           />
         )}
       </CardContent>
+
+      {/* UPI Payment Modal */}
+      {selectedDebt && (
+        <UpiPaymentModal
+          open={payModalOpen}
+          onOpenChange={setPayModalOpen}
+          debt={selectedDebt}
+          groupId={groupId}
+          currentUserId={currentUser?.id ?? ""}
+        />
+      )}
     </Card>
   );
 }
