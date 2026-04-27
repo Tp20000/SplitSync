@@ -20,7 +20,11 @@ export const multerUpload = multer({
     fileSize: 5 * 1024 * 1024, // 5MB
     files: 1,
   },
-  fileFilter: (_req, file, cb) => {
+    fileFilter: (
+    _req: Express.Request,
+    file: Express.Multer.File,
+    cb: multer.FileFilterCallback
+  ) => {
     const allowed = [
       "image/jpeg",
       "image/png",
