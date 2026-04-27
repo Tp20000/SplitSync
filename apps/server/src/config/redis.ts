@@ -1,9 +1,9 @@
 // FILE: apps/server/src/config/redis.ts
 // PURPOSE: Redis client singleton with TLS support for Upstash
-// DEPENDS ON: ioredis, .env
-// LAST UPDATED: F47 Fix - Upstash TLS support
+// DEPENDS ON: ioredis
+// LAST UPDATED: F47 Fix - RedisOptions import fix
 
-import Redis from "ioredis";
+import Redis, { RedisOptions } from "ioredis";
 
 // ─────────────────────────────────────────────
 // Connection config
@@ -13,21 +13,24 @@ const REDIS_HOST = process.env.REDIS_HOST ?? "localhost";
 const REDIS_PORT = parseInt(process.env.REDIS_PORT ?? "6379", 10);
 const REDIS_PASSWORD = process.env.REDIS_PASSWORD ?? undefined;
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
+const IS_UPSTASH =
+  IS_PRODUCTION &&
+  REDIS_HOST !== "localhost" &&
+  REDIS_HOST !== "127.0.0.1";
 
 // ─────────────────────────────────────────────
 // Build connection options
-// Upstash requires TLS in production
 // ─────────────────────────────────────────────
 
-const redisConnectionOptions: Redis.RedisOptions = {
+const redisConnectionOptions: RedisOptions = {
   host: REDIS_HOST,
   port: REDIS_PORT,
   password: REDIS_PASSWORD,
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
 
-  // Enable TLS for Upstash (production) or any non-local Redis
-  ...(IS_PRODUCTION && REDIS_HOST !== "localhost"
+  // TLS required for Upstash
+  ...(IS_UPSTASH
     ? {
         tls: {
           rejectUnauthorized: false,
@@ -37,9 +40,7 @@ const redisConnectionOptions: Redis.RedisOptions = {
 
   retryStrategy(times: number): number | null {
     if (times > 10) {
-      console.error(
-        "[Redis] Max retry attempts reached. Giving up."
-      );
+      console.error("[Redis] Max retry attempts reached. Giving up.");
       return null;
     }
     const delay = Math.min(times * 500, 10000);
@@ -79,7 +80,7 @@ redisClient.on("close", () => {
 });
 
 // ─────────────────────────────────────────────
-// Subscriber client
+// Subscriber client (for pub/sub)
 // ─────────────────────────────────────────────
 
 declare global {
